@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
-using System.Runtime.InteropServices;
 using System.Threading;
 
 namespace PropertyHook
@@ -59,6 +58,13 @@ namespace PropertyHook
 
         private Func<Process, bool> Selector;
         private List<PHPointerAOB> AOBPointers;
+        /// <summary>
+        /// Starts a thread that automatically checks for new processes to hook.
+        /// </summary>
+        public List<PHPointerAOB> GetPointers()
+        {
+            return AOBPointers;
+        }
         private Thread RefreshThread;
         private CancellationTokenSource RefreshCancellationSource;
 
@@ -126,6 +132,9 @@ namespace PropertyHook
                 bool cleanup = false;
                 foreach (Process process in Process.GetProcesses())
                 {
+                    if (process.MainWindowTitle == "DARK SOULS II")
+                        Console.WriteLine();
+
                     bool close = false;
                     bool is64Bit = false;
                     try
@@ -280,95 +289,7 @@ namespace PropertyHook
         /// </summary>
         public IntPtr Allocate(uint size, uint flProtect = Kernel32.PAGE_READWRITE)
         {
-            return Kernel32.VirtualAllocEx(Handle, IntPtr.Zero, (IntPtr)size, Kernel32.MEM_COMMIT | Kernel32.MEM_RESERVE, flProtect);
-        }
-
-        /// <summary>
-        /// Finds an unallocated memory region within a 4gb range of the given address and allocates it with the given size and permissions.
-        /// Returns the address of the allocation, or IntPtr.Zero if allocation fails.
-        /// </summary>
-        /// https://stackoverflow.com/questions/24890451/getting-the-nearest-free-memory-virtualallocex
-        public IntPtr AllocateNearbyMemory(IntPtr nearThisAddress, IntPtr size, uint flprotect)
-        {
-            IntPtr begin = nearThisAddress - 0x7FFF0000;
-            IntPtr end = nearThisAddress + 0x7FFF0000;
-            IntPtr curr = begin;
-            Kernel32.MEMORY_BASIC_INFORMATION mbi = new Kernel32.MEMORY_BASIC_INFORMATION();
-
-            for (; curr.ToInt64() < end.ToInt64(); curr = new IntPtr(curr.ToInt64() + 0x1000))// + mbi.RegionSize.ToInt64()))
-            {
-                Kernel32.VirtualQueryEx(Handle, curr, out mbi, (IntPtr)Marshal.SizeOf(mbi));
-                if (mbi.State == Kernel32.MEM_FREE)
-                {
-                    IntPtr addr = Kernel32.VirtualAllocEx(Handle, mbi.BaseAddress, size, Kernel32.MEM_COMMIT | Kernel32.MEM_RESERVE, flprotect);
-                    if (addr != IntPtr.Zero)
-                        return addr;
-                }
-            }
-            /*
-                while (Kernel32.VirtualQueryEx(Handle, curr, out mbi, (IntPtr)Marshal.SizeOf(mbi)) != 0)
-                {
-                    if (mbi.State == Kernel32.MEM_FREE)
-                    {
-                        IntPtr addr = Kernel32.VirtualAllocEx(Handle, mbi.BaseAddress, size, Kernel32.MEM_COMMIT | Kernel32.MEM_RESERVE, flprotect);
-                        if (addr != IntPtr.Zero)
-                            return addr;
-                    }
-                    curr = new IntPtr(curr.ToInt64() + mbi.RegionSize.ToInt64());
-                    if (curr.ToInt64() > end.ToInt64())
-                        break;
-                }
-            */
-
-            return IntPtr.Zero;
-        }
-
-        /// <summary>
-        /// Writes hook with jump instruction to asm bytes.
-        /// Returns a IntPtr to the memory allocated for the asm bytes.
-        /// </summary>
-        public IntPtr InjectHook(byte[] asm, IntPtr hookAddress, int asmJmpByte)
-        {
-            return InjectHook(asm, hookAddress, asmJmpByte, (IntPtr)asm.Length);
-        }
-
-        /// <summary>
-        /// Writes hook with jump instruction to asm bytes.
-        /// Returns a IntPtr to the memory allocated for the asm bytes.
-        /// </summary>
-        public IntPtr InjectHook(byte[] asm, IntPtr hookAddress, int asmJmpByte, IntPtr size)
-        {
-            IntPtr newmem = AllocateNearbyMemory(hookAddress, size, Kernel32.PAGE_EXECUTE_READWRITE);
-            if (newmem == IntPtr.Zero)
-                return IntPtr.Zero;
-
-            // calculate address for relative jump
-            byte[] newmemJmpBytes = BitConverter.GetBytes(newmem.ToInt64() - hookAddress.ToInt64() - 5);
-
-            byte[] hook = { 0xE9, 0x90, 0x90, 0x90, 0x90, 0x90 };
-            Array.Copy(newmemJmpBytes, 0, hook, 0x1, 4);
-
-            // calculate return jump
-            byte[] hookAddrJmpBytes = BitConverter.GetBytes(hookAddress.ToInt64() - newmem.ToInt64() - asmJmpByte);
-            Array.Copy(hookAddrJmpBytes, 0, asm, asmJmpByte + 1, 4);
-
-            // write newmem
-            Kernel32.WriteBytes(Handle, newmem, asm);
-
-            // write hook
-            Kernel32.WriteBytes(Handle, hookAddress, hook);
-
-            return newmem;
-        }
-
-        /// <summary>
-        /// Removes hook at specified address and frees allocated memory
-        /// </summary>
-        public void RemoveHook(byte[] originalBytes, IntPtr hookAddress, IntPtr allocatedMemory)
-        {
-            Kernel32.WriteBytes(Handle, hookAddress, originalBytes);
-            Free(allocatedMemory);
-            uint error = Kernel32.GetLastError();
+            return Kernel32.VirtualAllocEx(Handle, IntPtr.Zero, (IntPtr)size, Kernel32.MEM_COMMIT, flProtect);
         }
 
         /// <summary>
