@@ -182,8 +182,8 @@ namespace PropertyHook
                         }
                         AOBScanSucceeded = aobSuccess;
 
-                        Hooked = true;
                         RaiseOnHooked();
+                        Hooked = true;
                     }
                 }
             }
