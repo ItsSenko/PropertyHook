@@ -49,7 +49,22 @@ namespace PropertyHook
         public const uint MEM_RELEASE = 0x00008000;
         public const uint MEM_FREE = 0x00010000;
         #endregion
-
+        [StructLayout(LayoutKind.Sequential)]
+        public struct SYSTEM_INFO
+        {
+            internal ushort wProcessorArchitecture;
+            internal ushort wReserved;
+            internal uint dwPageSize;
+            internal IntPtr lpMinimumApplicationAddress;
+            internal IntPtr lpMaximumApplicationAddress;
+            internal IntPtr dwActiveProcessorMask;
+            internal uint dwNumberOfProcessors;
+            internal uint dwProcessorType;
+            internal uint dwAllocationGranularity;
+            internal ushort wProcessorLevel;
+            internal ushort wProcessorRevision;
+        }
+        
         [StructLayout(LayoutKind.Sequential)]
         public struct MEMORY_BASIC_INFORMATION
         {
@@ -89,7 +104,9 @@ namespace PropertyHook
         [DllImport("kernel32.dll")]
         public static extern bool WriteProcessMemory(IntPtr hProcess, IntPtr lpBaseAddress, byte[] lpBuffer, IntPtr nSize, IntPtr lpNumberOfBytesWritten);
 
-
+        public static SYSTEM_INFO SystemInfo;
+        [DllImport("kernel32.dll", SetLastError = true)]
+        public static extern void GetSystemInfo(ref SYSTEM_INFO Info);
         public static byte[] ReadBytes(IntPtr handle, IntPtr address, uint length)
         {
             byte[] bytes = new byte[length];

@@ -82,6 +82,7 @@ namespace PropertyHook
             AOBPointers = new List<PHPointerAOB>();
             RefreshThread = null;
             RefreshCancellationSource = null;
+            Kernel32.GetSystemInfo(ref Kernel32.SystemInfo);
         }
 
         /// <summary>
@@ -290,6 +291,22 @@ namespace PropertyHook
         public IntPtr Allocate(uint size, uint flProtect = Kernel32.PAGE_READWRITE)
         {
             return Kernel32.VirtualAllocEx(Handle, IntPtr.Zero, (IntPtr)size, Kernel32.MEM_COMMIT, flProtect);
+        }
+        /// <summary>
+        /// Get's a pointer allocated in near the process image.  
+        /// </summary>
+        public IntPtr GetPrefferedIntPtr(int size, uint flProtect = Kernel32.PAGE_READWRITE)
+        {
+            var ptr = IntPtr.Zero;
+            var i = 1;
+            while (ptr == IntPtr.Zero)
+            {
+                var distance = Process.MainModule.BaseAddress.ToInt64() - (Kernel32.SystemInfo.dwAllocationGranularity * i);
+                ptr = Kernel32.VirtualAllocEx(Handle, (IntPtr)distance, (IntPtr)size, Kernel32.MEM_RESERVE | Kernel32.MEM_COMMIT, flProtect);
+                i++;
+            }
+
+            return ptr;
         }
 
         /// <summary>
