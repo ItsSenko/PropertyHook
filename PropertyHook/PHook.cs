@@ -388,7 +388,6 @@ namespace PropertyHook
                 {
                     if (mod.ModuleName == name)
                         pointer = mod.BaseAddress;
-                    Debug.WriteLine(mod.ModuleName);
                 }
             }
 
