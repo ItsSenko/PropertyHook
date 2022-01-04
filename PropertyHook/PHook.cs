@@ -363,6 +363,7 @@ namespace PropertyHook
         {
             var name = Path.GetFileName(path);
             IntPtr thread;
+            // Commented code from https://codingvision.net/c-inject-a-dll-into-a-process-w-createremotethread
             // searching for the address of LoadLibraryA and storing it in a pointer
             IntPtr loadLibraryAddr = Kernel32.GetProcAddress(Kernel32.GetModuleHandle("kernel32.dll"), "LoadLibraryA");
 
