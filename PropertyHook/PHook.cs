@@ -2,6 +2,9 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.IO;
+using System.Runtime.InteropServices;
+using System.Text;
 using System.Threading;
 
 namespace PropertyHook
@@ -309,6 +312,20 @@ namespace PropertyHook
             return ptr;
         }
 
+        public IntPtr GetPrefferedIntPtr(int size, IntPtr baseAddress, uint flProtect = Kernel32.PAGE_READWRITE)
+        {
+            var ptr = IntPtr.Zero;
+            var i = 1;
+            while (ptr == IntPtr.Zero)
+            {
+                var distance = baseAddress.ToInt64() - (Kernel32.SystemInfo.dwAllocationGranularity * i);
+                ptr = Kernel32.VirtualAllocEx(Handle, (IntPtr)distance, (IntPtr)size, Kernel32.MEM_RESERVE | Kernel32.MEM_COMMIT, flProtect);
+                i++;
+            }
+
+            return ptr;
+        }
+
         /// <summary>
         /// Frees a memory region at the given address. Returns true if successful.
         /// </summary>
@@ -338,6 +355,43 @@ namespace PropertyHook
             uint result = Execute(address, timeout);
             Free(address);
             return result;
+        }
+        /// <summary>
+        /// Injects DLL specified in path.
+        /// </summary>
+        public IntPtr InjectDLL(string path)
+        {
+            var name = Path.GetFileName(path);
+            IntPtr thread;
+            // searching for the address of LoadLibraryA and storing it in a pointer
+            IntPtr loadLibraryAddr = Kernel32.GetProcAddress(Kernel32.GetModuleHandle("kernel32.dll"), "LoadLibraryA");
+
+            // alocating some memory on the target process - enough to store the name of the dll
+            // and storing its address in a pointer
+            IntPtr allocMemAddress = Kernel32.VirtualAllocEx(Handle, IntPtr.Zero, (IntPtr)((path.Length + 1) * Marshal.SizeOf(typeof(char))), Kernel32.MEM_COMMIT | Kernel32.MEM_RESERVE, Kernel32.PAGE_READWRITE);
+
+            // writing the name of the dll there
+            IntPtr bytesWritten = IntPtr.Zero;
+            Kernel32.WriteProcessMemory(Handle, allocMemAddress, Encoding.Default.GetBytes(path), (IntPtr)((path.Length + 1) * Marshal.SizeOf(typeof(char))), bytesWritten);
+
+            // creating a thread that will call LoadLibraryA with allocMemAddress as argument
+            thread = Kernel32.CreateRemoteThread(Handle, IntPtr.Zero, 0, loadLibraryAddr, allocMemAddress, 0, IntPtr.Zero);
+            Kernel32.WaitForSingleObject(thread, uint.MaxValue);
+
+            var pointer = IntPtr.Zero;
+            while (pointer == IntPtr.Zero)
+            {
+                Process.Refresh();
+                var modules = Process.Modules;
+                foreach (ProcessModule mod in modules)
+                {
+                    if (mod.ModuleName == name)
+                        pointer = mod.BaseAddress;
+                    Debug.WriteLine(mod.ModuleName);
+                }
+            }
+
+            return pointer;
         }
 
         private void RaiseOnHooked()

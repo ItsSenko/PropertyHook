@@ -107,6 +107,14 @@ namespace PropertyHook
         public static SYSTEM_INFO SystemInfo;
         [DllImport("kernel32.dll", SetLastError = true)]
         public static extern void GetSystemInfo(ref SYSTEM_INFO Info);
+        [DllImport("kernel32.dll", CharSet = CharSet.Auto)]
+        public static extern IntPtr GetModuleHandle(string lpModuleName);
+        [DllImport("kernel32", CharSet = CharSet.Ansi, ExactSpelling = true, SetLastError = true)]
+        public static extern IntPtr GetProcAddress(IntPtr hModule, string procName);
+        [DllImport("kernel32", SetLastError = true, CharSet = CharSet.Ansi)]
+        public static extern IntPtr LoadLibrary([MarshalAs(UnmanagedType.LPStr)] string lpFileName);
+        [DllImport("kernel32.dll")]
+        public static extern uint GetLastError();
         public static byte[] ReadBytes(IntPtr handle, IntPtr address, uint length)
         {
             byte[] bytes = new byte[length];
