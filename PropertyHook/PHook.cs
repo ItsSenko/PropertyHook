@@ -136,9 +136,6 @@ namespace PropertyHook
                 bool cleanup = false;
                 foreach (Process process in Process.GetProcesses())
                 {
-                    if (process.MainWindowTitle == "DARK SOULS II")
-                        Console.WriteLine();
-
                     bool close = false;
                     bool is64Bit = false;
                     try
