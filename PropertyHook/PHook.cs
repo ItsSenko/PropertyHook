@@ -295,27 +295,31 @@ namespace PropertyHook
         /// <summary>
         /// Get's a pointer allocated in near the process image.  
         /// </summary>
-        public IntPtr GetPrefferedIntPtr(int size, uint flProtect = Kernel32.PAGE_READWRITE)
+        //public IntPtr GetPrefferedIntPtr(int size, uint flProtect = Kernel32.PAGE_READWRITE)
+        //{
+        //    var ptr = IntPtr.Zero;
+        //    var i = 1;
+        //    while (ptr == IntPtr.Zero)
+        //    {
+        //        var distance = Process.MainModule.BaseAddress.ToInt64() - (Kernel32.SystemInfo.dwAllocationGranularity * i);
+        //        ptr = Kernel32.VirtualAllocEx(Handle, (IntPtr)distance, (IntPtr)size, Kernel32.MEM_RESERVE | Kernel32.MEM_COMMIT, flProtect);
+        //        i++;
+        //    }
+
+        //    return ptr;
+        //}
+
+        public IntPtr GetPrefferedIntPtr(int size, IntPtr? basePtr = null, uint flProtect = Kernel32.PAGE_READWRITE)
         {
+            long baseAddress = Process.MainModule.BaseAddress.ToInt64();
+            if (basePtr != null)
+                baseAddress = basePtr.Value.ToInt64();
+
             var ptr = IntPtr.Zero;
             var i = 1;
             while (ptr == IntPtr.Zero)
             {
-                var distance = Process.MainModule.BaseAddress.ToInt64() - (Kernel32.SystemInfo.dwAllocationGranularity * i);
-                ptr = Kernel32.VirtualAllocEx(Handle, (IntPtr)distance, (IntPtr)size, Kernel32.MEM_RESERVE | Kernel32.MEM_COMMIT, flProtect);
-                i++;
-            }
-
-            return ptr;
-        }
-
-        public IntPtr GetPrefferedIntPtr(int size, IntPtr baseAddress, uint flProtect = Kernel32.PAGE_READWRITE)
-        {
-            var ptr = IntPtr.Zero;
-            var i = 1;
-            while (ptr == IntPtr.Zero)
-            {
-                var distance = baseAddress.ToInt64() - (Kernel32.SystemInfo.dwAllocationGranularity * i);
+                var distance = baseAddress - (Kernel32.SystemInfo.dwAllocationGranularity * i);
                 ptr = Kernel32.VirtualAllocEx(Handle, (IntPtr)distance, (IntPtr)size, Kernel32.MEM_RESERVE | Kernel32.MEM_COMMIT, flProtect);
                 i++;
             }
