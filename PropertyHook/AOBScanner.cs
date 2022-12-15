@@ -93,7 +93,7 @@ namespace PropertyHook
             for (int i = 0; i < aob.Length; i++)
             {
                 string item = items[i];
-                if (item == "?")
+                if (item is "?" || item is "??")
                     aob[i] = null;
                 else
                     aob[i] = byte.Parse(item, System.Globalization.NumberStyles.AllowHexSpecifier);
