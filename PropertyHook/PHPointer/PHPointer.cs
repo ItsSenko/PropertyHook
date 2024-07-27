@@ -120,7 +120,14 @@ namespace PropertyHook
             return Kernel32.WriteByte(Hook.Handle, Resolve() + offset, value);
         }
 
-
+        public byte ReadByte(long offset)
+        {
+            return Kernel32.ReadByte(Hook.Handle, (IntPtr)(Resolve().ToInt64() + offset));
+        }
+        public bool WriteByte(long offset, byte value)
+        {
+            return Kernel32.WriteByte(Hook.Handle, (IntPtr)(Resolve().ToInt64() + offset), value);
+        }
         /// <summary>
         /// Read a 1-byte boolean value.
         /// </summary>
